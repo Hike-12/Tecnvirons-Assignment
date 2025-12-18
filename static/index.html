@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Session</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        #chat-box { border: 1px solid #ccc; height: 400px; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
+        .message { margin-bottom: 10px; }
+        .user { color: blue; text-align: right; }
+        .assistant { color: green; }
+        .system { color: gray; font-style: italic; }
+    </style>
+</head>
+<body>
+    <h1>Realtime AI Session</h1>
+    <div id="status">Disconnected</div>
+    <button onclick="connect()">Connect</button>
+    <div id="chat-box"></div>
+    <input type="text" id="message-input" placeholder="Type a message..." onkeypress="handleKeyPress(event)">
+    <button onclick="sendMessage()">Send</button>
+
+    <script>
+        let ws;
+        let currentAssistantMessage = null;
+
+        function connect() {
+            const clientId = "user_" + Math.floor(Math.random() * 1000);
+            ws = new WebSocket(`ws://localhost:8000/ws/session/${clientId}`);
+
+            ws.onopen = () => {
+                document.getElementById("status").innerText = "Connected";
+                appendSystemMessage("Connected to session.");
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === "token") {
+                    if (!currentAssistantMessage) {
+                        currentAssistantMessage = document.createElement("div");
+                        currentAssistantMessage.className = "message assistant";
+                        currentAssistantMessage.innerText = "AI: ";
+                        document.getElementById("chat-box").appendChild(currentAssistantMessage);
+                    }
+                    currentAssistantMessage.innerText += data.content;
+                    scrollToBottom();
+                } else if (data.type === "end_turn") {
+                    currentAssistantMessage = null;
+                } else if (data.type === "info") {
+                    appendSystemMessage(data.content);
+                } else if (data.type === "error") {
+                    appendSystemMessage("Error: " + data.content);
+                }
+            };
+
+            ws.onclose = () => {
+                document.getElementById("status").innerText = "Disconnected";
+                appendSystemMessage("Disconnected.");
+            };
+        }
+
+        function sendMessage() {
+            const input = document.getElementById("message-input");
+            const message = input.value;
+            if (message && ws) {
+                ws.send(message);
+                appendUserMessage(message);
+                input.value = "";
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        }
+
+        function appendUserMessage(text) {
+            const div = document.createElement("div");
+            div.className = "message user";
+            div.innerText = "You: " + text;
+            document.getElementById("chat-box").appendChild(div);
+            scrollToBottom();
+        }
+
+        function appendSystemMessage(text) {
+            const div = document.createElement("div");
+            div.className = "message system";
+            div.innerText = text;
+            document.getElementById("chat-box").appendChild(div);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            const chatBox = document.getElementById("chat-box");
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
+</body>
+</html>
