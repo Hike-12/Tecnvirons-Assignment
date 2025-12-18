@@ -63,4 +63,4 @@ The server will start at `http://localhost:8000`.
 - **Persistence**: All events (messages, tool calls) are logged to Supabase asynchronously.
 - **Background Tasks**: Session summarization happens in the background after the WebSocket disconnects, ensuring the user experience isn't impacted by cleanup tasks.
 - **Separation of Concerns**: Logic is split into `routers` (transport), `services` (business logic), and `database` (persistence).
-"# Hike-12" 
+
